@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+table {
+  border-collapse: collapse;
+  border: 2px solid black;
+  text-align: center;
+  vertical-align: middle;
+  table-layout: fixed;
+	      margin-left:auto;
+    margin-right:auto;
+  font-family: "Courier New", Courier, "Lucida Sans Typewriter", "Lucida Typewriter", monospace;
+}
+thead {
+  border: 2px solid black;
+}
+thead tr, thead th{
+  border: 2px solid black;
+}
+
+ul {
+	font-family: "Courier New", Courier, "Lucida Sans Typewriter", "Lucida Typewriter", monospace;
+}
+tr td {
+  border-bottom: 1px solid black;
+}
+.date-cell {
+  font-weight: bold;
+}
+.warning-cell {
+  	font-weight: bold; color: red;
+}
+.open-cell{
+	font-weight: bold; color: blue;
+}
+.call-cell{
+	font-weight: bold; color: black;
+}
+.first{
+	font-size: x-large;
+}
+
+li.whostring{
+	font-weight: bold; font-size: large; line-height:200%;
+}
+.callsign{
+	font-weight: bold; color: red; background: yellow; font-size: large;
+}
+li.openslotstring{
+	font-weight: bold; color: red; font-size: x-large
+}
+
+#whostring, #openslotstring, #netfreq{
+	list-style-type: none; list-style-position: outside;
+}
+li.noopenslots{
+	font-weight: bold; font-size: x-large; color: black; text-decoration: underline;
+}
+#netfreq{
+	font-weight: bold; font-size: small; 
+}
+#footnotes{
+	font-size: small;
+}
+#greeting{
+	font-family: Arial, Helvetica, sans-serif
+}
+</style>
+</head>
+<body>
+<h2 #greeting>KCARC Net: {{when|default("Coming Soon", true)}}</h2>
+<div id="greeting"><h4>Greetings, KCARCers!</h4> This is a reminder that the KCARC Weekly Nets are {{when|default("just around the corner", true)}}! The first net starts at 6:30 pm. 
+	<p>Please come, join us, and enjoy the fellowship of Amateur Radio.<p>Net Control Operators are strongly encouraged to engage the net in meaningful conversation.</div>
+<ul id="openslotstring">{% if open_slot_strings|length %}
+{% for slot in open_slot_strings %}
+	<li class="openslotstring">{{slot}}</li>
+{% endfor %}
+{% else %}
+	<li class="noopenslots">All Nets are covered for this week:</li>
+{% endif %}</ul>
+
+<ul id="whostring">{% for whos_up in whos_up_strings %}
+	<li class="whostring">{{whos_up}}</li>
+{% endfor %}</ul>
+<table border="1" cellpadding="2" cellspacing="2" style="width:90%;background-color:#ffffff;border-collapse:collapse;border:1px solid #000000">
+	<thead>
+		<tr>
+			<th rowspan="3">Date</th>
+		</tr>
+		<tr>
+			<th>75m</th>
+			<th>70cm</th>
+			<th>2m</th>
+			<th>10m</th>
+		</tr>
+		<tr>
+			<th>1830h</th>
+			<th>1900h</th>
+			<th>1930h</th>
+			<th>2000h</th>
+		</tr>
+	</thead>
+	<tbody>
+	{% for item in items %}
+		<tr>
+			<td class="{{item.tags.Date}}">{{item.Date}}</td>
+			<td class="{{item.tags.band1}}">{{item.band1}}</td>
+			<td class="{{item.tags.band2}}">{{item.band2}}</td>
+			<td class="{{item.tags.band3}}">{{item.band3}}</td>
+			<td class="{{item.tags.band4}}">{{item.band4}}</td>
+		</tr>
+	{% endfor %}
+	</tbody>
+</table>
+<ul id="netfreq">
+	<li>75m : 3.985 MHz LSB (+/- 5KHz **)</li>
+	<li>70cm : 444.075 MHz FM  (+5 MHz offset, 103.5 PL Tone)</li>
+	<li>2m : 145.430 MHz FM  (-600 kHz offset, 88.5 PL tone)</li>
+	<li>10m : 28.330 MHz USB (28.335 as a backup)</li>
+	<li>**  (TUNE AROUND FOR US ON 75. WE TRY TO AVOID QRM’ing OTHER QSO’S BY MOVING UP OR DOWN A LITTLE WHEN NECESSARY)</li>
+</ul>
+<ul id="footnotes">
+	<li>REMINDER: If you are getting a duplicate of this email, please let me know.</li>
+</ul>
+</body>

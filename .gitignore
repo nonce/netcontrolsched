@@ -1,0 +1,7 @@
+.idea/
+venv/
+*.swp
+__pyenv__/
+__pycache__/
+*.htm*
+
