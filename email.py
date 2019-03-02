@@ -6,9 +6,13 @@ import os
 import smtplib
 import webbrowser
 
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
 import sheetsu
 from jinja2 import Template
 
+EMAIL_CONFIG = "./email.config"
 SHEETSU_NICKNAME_API_ID = '8bad9db63f7f'
 SHEETSU_API_ID = '168ed10a28e1'
 SHEETSU_API_KEY = 'eHPzam8pzzC5reGae8vW'
@@ -19,8 +23,8 @@ NET_DAY = 'WEDNESDAY'
 FILENAME = 'email.html'
 
 SENDER = 'cq.kg6o@gmail.com'
-RECEIVER = 'choffma@gmail.com'
-CC = ['de.kg6o@gmail.com', 'coeotic@gmail.com']
+RECEIVER = ['choffma@gmail.com']
+CC = ['de.kg6o@gmail.com']
 BCC = ['coeotic@gmail.com']
 SUBJECT = 'my subject'
 PASSWORD = 'vaimbgcfvaldkatd'
@@ -29,19 +33,24 @@ PORT = 587
 WARNING_THRESHOLD = 2
 
 
-def send_email(server, port, password, sender, receiver, cc, bcc, subject, message):
-    body = "From: {}\r\nTo: {}\r\nCC: {}\r\nSubject: {}\r\n" \
-           "Content-Type: text/html; charset=UTF-8\r\n" \
-           "Message Body:\r\n{}".format(sender, receiver, cc, subject, message)
+def send_email(server, port, password, sender, receiver, cc, bcc, subject,
+               html, text):
     toaddrs = [receiver] + cc + bcc
-    print(body)
-    s = smtplib.SMTP(server, port)
-    try:
+
+    message = MIMEMultipart("alternative")
+    message["Subject"] = subject
+    message["From"] = ",".join(sender)
+    message["To"] = ",".join(receiver)
+    message["Cc"] = ",".join(cc)
+    message.attach(MIMEText(text, "plain"))
+    message.attach(MIMEText(html, "html"))
+
+    with smtplib.SMTP(server, port) as s:
         s.starttls()
         s.login(sender, password)
-        return s.sendmail(sender, toaddrs, body)
-    except Exception as e:
-        print("error: {}".format(e))
+        s.sendmail(
+            sender, toaddrs, message.as_string()
+        )
 
 
 def save_html(html, filename):
@@ -85,9 +94,7 @@ def render_body(sched_items, today, template, warning_threshold, nicknames):
         o = next_nets[i]
         items.append({x[k]: o[k] for k in o})
 
-
-
-    # form words for upcomming week
+    # form words for upcoming week
     upcoming = datetime.date.fromisoformat(items[0]['Date'])
     diff = upcoming - today_dt
     when = 'Today'
@@ -131,7 +138,8 @@ def render_body(sched_items, today, template, warning_threshold, nicknames):
     if 'OPEN' in whos_up:
         bands = whos_up['OPEN']
         for band in bands:
-            open_slot_strings.append('We still need a Net Control for the upcomming {} Net!'.format(band))
+            open_slot_strings.append('We still need a Net Control for the '
+                                     'upcoming {} Net!'.format(band))
     print(open_slot_strings)
 
     whos_up_strings = []
@@ -142,7 +150,8 @@ def render_body(sched_items, today, template, warning_threshold, nicknames):
         whostring = ''
         if who in nicknames:
             whostring += '{} '.format(nicknames[who])
-        whostring += '(<span class="callsign">{}</span>) will be handling the {}'.format(who, bands.pop())
+        whostring += '(<span class="callsign">{}</span>) will be ' \
+                     'handling the {}'.format(who, bands.pop())
         if bands:
             while bands:
                 if len(bands) == 1:
@@ -153,30 +162,34 @@ def render_body(sched_items, today, template, warning_threshold, nicknames):
             whostring += ' net.'
         whos_up_strings.append(whostring)
 
-    return '{}'.format(j_template.render(whos_up_strings=whos_up_strings,
+    return j_template.render(whos_up_strings=whos_up_strings,
                                          open_slot_strings=open_slot_strings,
                                          when=when,
-                                         items=items))
+                                         items=items)
 
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--api',
                         help='sheetsu API ID',
                         type=str,
-                        default=os.environ.get('SHEETSU_API_ID', SHEETSU_API_ID))
+                        default=os.environ.get('SHEETSU_API_ID',
+                                               SHEETSU_API_ID))
     parser.add_argument('--nickname-api',
                         help='API ID for Sheetsu Nickname Lookup',
                         type=str,
-                        default=os.environ.get('SHEETSU_NICKNAME_API_ID', SHEETSU_NICKNAME_API_ID))
+                        default=os.environ.get('SHEETSU_NICKNAME_API_ID',
+                                               SHEETSU_NICKNAME_API_ID))
     parser.add_argument('--key',
                         help='sheetsu API KEY',
                         type=str,
-                        default=os.environ.get('SHEETSU_API_KEY', SHEETSU_API_KEY))
+                        default=os.environ.get('SHEETSU_API_KEY',
+                                               SHEETSU_API_KEY))
     parser.add_argument('--secret',
                         help='sheetsu API SECRET',
                         type=str,
-                        default=os.environ.get('SHEETSU_API_SECRET', SHEETSU_API_SECRET))
+                        default=os.environ.get('SHEETSU_API_SECRET',
+                                               SHEETSU_API_SECRET))
     parser.add_argument('--weeks',
                         help='how many upcomming weeks to show in the report',
                         type=int,
@@ -199,7 +212,8 @@ if __name__ == "__main__":
                               help='print or email the rendered template',
                               action='store_true')
     output_group.add_argument('--web',
-                              help='render email body in the default web browser',
+                              help='render email body in the '
+                                   'default web browser',
                               action='store_true')
 
     parser.add_argument('--sender',
@@ -238,27 +252,45 @@ if __name__ == "__main__":
                         type=int,
                         default=os.environ.get('PORT', PORT))
     parser.add_argument('--filename',
-                        help='Name of the local file in which the HTML Email Body is '
+                        help='Name of the local file in which '
+                             'the HTML Email Body is '
                              'saved with --print and --web options',
                         type=str,
                         default=os.environ.get('FILENAME', FILENAME))
     parser.add_argument('--warning-threshold',
-                        help='Number of weeks out that upcoming open slots will generate a warnig',
+                        help='Number of weeks out that upcoming open '
+                             'slots will generate a warning',
                         type=int,
-                        default=os.environ.get('WARNING_THRESHOLD', WARNING_THRESHOLD))
+                        default=os.environ.get('WARNING_THRESHOLD',
+                                               WARNING_THRESHOLD))
     parser.add_argument('--message',
                         help='an alternate message string to send',
                         type=str)
+    parser.add_argument('--config',
+                        help='relative file name of the local config',
+                        type=str,
+                        default=os.environ.get('EMAIL_CONFIG', EMAIL_CONFIG))
     args = parser.parse_args()
 
     template = get_template(file=args.template)
     sched_items = get_items(args.api, args.key, args.secret)
     nicknames = get_nicknames(args.nickname_api)
+
     if args.message:
-        html = args.message
+        html = """\
+        <html>
+          <body>
+            <p>
+                {}
+            </p>
+          </body>
+        </html>""".format(args.message)
+        text = args.message
     else:
-        print ('sending composed body')
-        html = render_body(sched_items, args.date, template, args.warning_threshold, nicknames).encode('ascii','ignore')
+        html = render_body(sched_items, args.date, template,
+                           args.warning_threshold, nicknames)
+        text = 'text item to be filled'
+
     if args.print:
         print(html)
     elif args.web:
@@ -273,4 +305,9 @@ if __name__ == "__main__":
                    cc=args.cc,
                    bcc=args.bcc,
                    subject=args.subject,
-                   message=html)
+                   html=html,
+                   text=text)
+
+
+if __name__ == "__main__":
+    main()
