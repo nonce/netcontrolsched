@@ -16,14 +16,14 @@ from jinja2 import Template
 EMAIL_CONFIG = "./email.yml"
 
 
-def send_email(server, port, password, sender, receiver, cc, bcc, subject,
+def send_email(server, port, password, sender, to, cc, bcc, subject,
                html, text):
-    toaddrs = [receiver] + cc + bcc
-
+    toaddrs = to + cc + bcc
+    print(toaddrs)
     message = MIMEMultipart("alternative")
     message["Subject"] = subject
-    message["From"] = ",".join(sender)
-    message["To"] = ",".join(receiver)
+    message["From"] = sender
+    message["To"] = ",".join(to)
     message["Cc"] = ",".join(cc)
     message.attach(MIMEText(text, "plain"))
     message.attach(MIMEText(html, "html"))
@@ -222,7 +222,7 @@ def main():
                         type=str,
                         default=os.environ.get('FROM',
                                                config.get('FROM')))
-    parser.add_argument('--receiver',
+    parser.add_argument('--to',
                         help='Reciver of the email',
                         action='append',
                         type=str,
@@ -282,7 +282,6 @@ def main():
     sched_items = get_items(args.api, args.key, args.secret)
     nicknames = get_nicknames(args.nickname_api)
 
-    print(args)
     if args.message:
         html = """\
         <html>
@@ -316,7 +315,7 @@ def main():
                    port=args.port,
                    password=args.password,
                    sender=args.sender,
-                   receiver=args.receiver,
+                   to=args.to,
                    cc=args.cc,
                    bcc=args.bcc,
                    subject=args.subject,
