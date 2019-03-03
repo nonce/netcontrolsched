@@ -5,6 +5,7 @@ import datetime
 import os
 import smtplib
 import webbrowser
+import yaml
 
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -12,25 +13,7 @@ from email.mime.multipart import MIMEMultipart
 import sheetsu
 from jinja2 import Template
 
-EMAIL_CONFIG = "./email.config"
-SHEETSU_NICKNAME_API_ID = '8bad9db63f7f'
-SHEETSU_API_ID = '168ed10a28e1'
-SHEETSU_API_KEY = 'eHPzam8pzzC5reGae8vW'
-SHEETSU_API_SECRET = 'Di7LpsCGd4Jn5s17Ra8fe5d8FQ1kZ9wBZnkkfEq2'
-WEEKS = 8
-BAND_MAPPINGS = {'Date': 'Date', '75m': 'band1', '70cm': 'band2', '2m': 'band3', '10m': 'band4'}
-NET_DAY = 'WEDNESDAY'
-FILENAME = 'email.html'
-
-SENDER = 'cq.kg6o@gmail.com'
-RECEIVER = ['choffma@gmail.com']
-CC = ['de.kg6o@gmail.com']
-BCC = ['coeotic@gmail.com']
-SUBJECT = 'my subject'
-PASSWORD = 'vaimbgcfvaldkatd'
-SERVER = 'smtp.gmail.com'
-PORT = 587
-WARNING_THRESHOLD = 2
+EMAIL_CONFIG = "./email.yml"
 
 
 def send_email(server, port, password, sender, receiver, cc, bcc, subject,
@@ -64,7 +47,8 @@ def get_template(file='email.njk'):
 
 
 def get_items(api_id, api_key, api_secret):
-    client = sheetsu.SheetsuClient(api_id, api_key=api_key, api_secret=api_secret)
+    client = sheetsu.SheetsuClient(api_id, api_key=api_key,
+                                   api_secret=api_secret)
     return client.read()
 
 
@@ -73,7 +57,8 @@ def get_nicknames(nickname_api_id):
     return client.read()[0]
 
 
-def render_body(sched_items, today, template, warning_threshold, nicknames):
+def render_body(sched_items, today, template, warning_threshold, nicknames,
+                band_mappings):
     j_template = Template(template)
     today_dt = datetime.date.fromisoformat(today)
     window_dt = today_dt + datetime.timedelta(weeks=8)
@@ -89,7 +74,7 @@ def render_body(sched_items, today, template, warning_threshold, nicknames):
 
     it = sorted(next_nets.keys())
 
-    x = BAND_MAPPINGS
+    x = band_mappings
     for i in it:
         o = next_nets[i]
         items.append({x[k]: o[k] for k in o})
@@ -163,37 +148,52 @@ def render_body(sched_items, today, template, warning_threshold, nicknames):
         whos_up_strings.append(whostring)
 
     return j_template.render(whos_up_strings=whos_up_strings,
-                                         open_slot_strings=open_slot_strings,
-                                         when=when,
-                                         items=items)
+                             open_slot_strings=open_slot_strings,
+                             when=when,
+                             items=items), when, upcoming
 
 
 def main():
+    # we want the given args to take precedence over env vars to take precedence
+    # over the in-directory config.
+
+    config_file = os.getenv('EMAIL_CONFIG', EMAIL_CONFIG)
+    config = {}
+    try:
+        with open(config_file, 'r') as ymlfile:
+            config = yaml.load(ymlfile)
+    except Exception as e:
+        print("Error with Config {}: {}".format(config_file, e))
+        print("Continuing with an empty config.")
+
     parser = argparse.ArgumentParser()
     parser.add_argument('--api',
-                        help='sheetsu API ID',
+                        help='Sheetsu Schedule API ID',
                         type=str,
                         default=os.environ.get('SHEETSU_API_ID',
-                                               SHEETSU_API_ID))
+                                               config.get('SHEETSU_API_ID')))
     parser.add_argument('--nickname-api',
                         help='API ID for Sheetsu Nickname Lookup',
                         type=str,
                         default=os.environ.get('SHEETSU_NICKNAME_API_ID',
-                                               SHEETSU_NICKNAME_API_ID))
+                                               config.get(
+                                                   'SHEETSU_NICKNAME_API_ID')))
     parser.add_argument('--key',
                         help='sheetsu API KEY',
                         type=str,
                         default=os.environ.get('SHEETSU_API_KEY',
-                                               SHEETSU_API_KEY))
+                                               config.get('SHEETSU_API_KEY')))
     parser.add_argument('--secret',
                         help='sheetsu API SECRET',
                         type=str,
                         default=os.environ.get('SHEETSU_API_SECRET',
-                                               SHEETSU_API_SECRET))
+                                               config.get(
+                                                   'SHEETSU_API_SECRET')))
     parser.add_argument('--weeks',
                         help='how many upcomming weeks to show in the report',
                         type=int,
-                        default=os.environ.get('WEEKS', WEEKS))
+                        default=os.environ.get('WEEKS',
+                                               config.get('WEEKS')))
     parser.add_argument('--date',
                         help='ISO Format Date (YYYY-MM-DD) Overide',
                         type=str,
@@ -201,7 +201,8 @@ def main():
     parser.add_argument('--netday',
                         help='Day of the week for the net',
                         type=str,
-                        default='Wednesday')
+                        default=os.environ.get('NET_DAY',
+                                               config.get('NET_DAY')))
     parser.add_argument('--template',
                         help='relative file uri of .njk',
                         type=str,
@@ -219,63 +220,69 @@ def main():
     parser.add_argument('--sender',
                         help='Email of message sender',
                         type=str,
-                        default=os.environ.get('SENDER', SENDER))
+                        default=os.environ.get('FROM',
+                                               config.get('FROM')))
     parser.add_argument('--receiver',
                         help='Reciver of the email',
                         action='append',
                         type=str,
-                        default=os.environ.get('RECEIVER', RECEIVER))
+                        default=os.environ.get('TO',
+                                               config.get('TO', [])))
     parser.add_argument('--cc',
                         help='CC Reciver of the email',
                         action='append',
                         type=str,
-                        default=os.environ.get('CC', CC))
+                        default=os.environ.get('CC',
+                                               config.get('CC', [])))
     parser.add_argument('--bcc',
                         help='BCC Receiver of the email',
                         action='append',
                         type=str,
-                        default=os.environ.get('BCC', BCC))
+                        default=os.environ.get('BCC',
+                                               config.get('BCC', [])))
     parser.add_argument('--subject',
                         help='Subject odf the email',
                         type=str,
-                        default=os.environ.get('SUBJECT', SUBJECT))
+                        default=os.environ.get('SUBJECT',
+                                               config.get('SUBJECT')))
     parser.add_argument('--password',
                         help='SMTP Server Sender Password',
                         type=str,
-                        default=os.environ.get('PASSWORD', PASSWORD))
+                        default=os.environ.get('EMAIL_PASSWORD',
+                                               config.get('EMAIL_PASSWORD')))
     parser.add_argument('--server',
                         help='SMTP Server (with tls)',
                         type=str,
-                        default=os.environ.get('SERVER', SERVER))
+                        default=os.environ.get('EMAIL_SERVER',
+                                               config.get('EMAIL_SERVER')))
     parser.add_argument('--port',
                         help='SMTP Server tls Port',
                         type=int,
-                        default=os.environ.get('PORT', PORT))
+                        default=os.environ.get('EMAIL_PORT',
+                                               config.get('EMAIL_PORT')))
     parser.add_argument('--filename',
                         help='Name of the local file in which '
                              'the HTML Email Body is '
                              'saved with --print and --web options',
                         type=str,
-                        default=os.environ.get('FILENAME', FILENAME))
+                        default=os.environ.get('FILENAME',
+                                               config.get('FILENAME')))
     parser.add_argument('--warning-threshold',
                         help='Number of weeks out that upcoming open '
                              'slots will generate a warning',
                         type=int,
                         default=os.environ.get('WARNING_THRESHOLD',
-                                               WARNING_THRESHOLD))
+                                               config.get('WARNING_THRESHOLD')))
     parser.add_argument('--message',
                         help='an alternate message string to send',
                         type=str)
-    parser.add_argument('--config',
-                        help='relative file name of the local config',
-                        type=str,
-                        default=os.environ.get('EMAIL_CONFIG', EMAIL_CONFIG))
     args = parser.parse_args()
 
     template = get_template(file=args.template)
     sched_items = get_items(args.api, args.key, args.secret)
     nicknames = get_nicknames(args.nickname_api)
 
+    print(args)
     if args.message:
         html = """\
         <html>
@@ -287,14 +294,22 @@ def main():
         </html>""".format(args.message)
         text = args.message
     else:
-        html = render_body(sched_items, args.date, template,
-                           args.warning_threshold, nicknames)
+        html, when, upcoming = render_body(sched_items=sched_items,
+                                           today=args.date,
+                                           template=template,
+                                           warning_threshold=args.warning_threshold,
+                                           nicknames=nicknames,
+                                           band_mappings=config.get(
+                                               'BAND_MAPPINGS'))
+        if not args.subject:
+            args.subject = "KCARC Net: {}, {}".format(when, upcoming)
         text = 'text item to be filled'
 
     if args.print:
         print(html)
     elif args.web:
-        save_html(html, args.filename)
+        save_html(html=html,
+                  filename=args.filename)
         webbrowser.open('file://' + os.path.realpath(args.filename))
     else:
         send_email(server=args.server,

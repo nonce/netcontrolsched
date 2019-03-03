@@ -1,0 +1,26 @@
+EMAIL_PASSWORD: 'kdorrbtsgolxiucg'
+SHEETSU_NICKNAME_API_ID: '8bad9db63f7f'
+SHEETSU_API_ID: '168ed10a28e1'
+SHEETSU_API_KEY: 'eHPzam8pzzC5reGae8vW'
+SHEETSU_API_SECRET: 'Di7LpsCGd4Jn5s17Ra8fe5d8FQ1kZ9wBZnkkfEq2'
+WEEKS: 8
+BAND_MAPPINGS:
+  Date: 'Date'
+  75m: 'band1'
+  70cm: 'band2'
+  2m: 'band3'
+  10m: 'band4'
+NET_DAY: 'WEDNESDAY'
+FILENAME: 'email.html'
+FROM: 'cq.kg6o@gmail.com'
+TO:
+  - 'choffma@gmail.com'
+CC:
+  - 'de.kg6o@gmail.com'
+BCC:
+  - 'coeotic@gmail.com'
+SUBJECT:
+  - 'my subject'
+EMAIL_SERVER: 'smtp.gmail.com'
+EMAIL_PORT: 587
+WARNING_THRESHOLD: 2
