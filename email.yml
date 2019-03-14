@@ -11,5 +11,5 @@ EMAIL_SERVER: 'smtp.gmail.com'
 EMAIL_PORT: 587
 WARNING_THRESHOLD: 2
 SUBS:
-  - 'emails_test.yml'
-  - 'credentials_kg6o.yml'
+  - 'emails.yml'
+  - 'credentials.yml'
