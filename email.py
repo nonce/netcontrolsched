@@ -153,18 +153,27 @@ def render_body(sched_items, today, template, warning_threshold, nicknames,
                              items=items), when, upcoming
 
 
+def get_config(config_file):
+    try:
+        with open(config_file, 'r') as ymlfile:
+            return yaml.load(ymlfile)
+    except Exception as e:
+        print("Error with Config {}: {}".format(config_file, e))
+        print("Continuing with an empty config.")
+        return {}
+
+
 def main():
     # we want the given args to take precedence over env vars to take precedence
     # over the in-directory config.
 
     config_file = os.getenv('EMAIL_CONFIG', EMAIL_CONFIG)
-    config = {}
-    try:
-        with open(config_file, 'r') as ymlfile:
-            config = yaml.load(ymlfile)
-    except Exception as e:
-        print("Error with Config {}: {}".format(config_file, e))
-        print("Continuing with an empty config.")
+    config = get_config(config_file)
+
+    # let's get our subordinate configs, and update the master config
+    sub_configs = config.get('SUBS', [])
+    for conf in sub_configs:
+        config.update(get_config(conf))
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--api',
