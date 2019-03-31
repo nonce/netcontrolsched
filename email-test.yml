@@ -1,0 +1,15 @@
+WEEKS: 8
+BAND_MAPPINGS:
+  Date: 'Date'
+  75m: 'band1'
+  70cm: 'band2'
+  2m: 'band3'
+  10m: 'band4'
+NET_DAY: 'WEDNESDAY'
+FILENAME: 'email.html'
+EMAIL_SERVER: 'smtp.gmail.com'
+EMAIL_PORT: 587
+WARNING_THRESHOLD: 2
+SUBS:
+  - 'emails_test.yml'
+  - 'credentials.yml'

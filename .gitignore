@@ -4,4 +4,5 @@ venv/
 __pyenv__/
 __pycache__/
 *.htm*
+credentials.*
 

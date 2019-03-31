@@ -69,12 +69,13 @@ li.noopenslots{
 </style>
 </head>
 <body>
-<h2 #greeting>KCARC Net: {{when|default("Coming Soon", true)}}</h2>
-<div id="greeting"><h4>Greetings, KCARCers!</h4> <p>This is an automated reminder
-    [...so please excuse the clumsy formatting]
+<h2 #greetings>Please Note:</b> The 75m Net is now at 2030h. </h2>
+<div id="greeting"><h4>Greetings, KCARCers!</h4>
+ <p>This is a [semi-]automated reminder
     that the KCARC Weekly Nets are
     {{when|default("just around the corner", true)}}.
-    The first net starts at 6:30 pm.</p>
+    The first net starts at 7pm.</p>
+    <p>Now that we are in the Spring/Summer half of the year, our 80m nets will be held after our 10m net.</p>
 	<p>Please come, join us, and enjoy the fellowship of Amateur Radio.</p>
 	<p class    ="note">Net Control Operators are strongly encouraged to engage the net
 	in meaningful conversation.</p></div>
@@ -95,26 +96,26 @@ li.noopenslots{
 			<th rowspan="3">Date</th>
 		</tr>
 		<tr>
-			<th>75m</th>
 			<th>70cm</th>
 			<th>2m</th>
 			<th>10m</th>
+			<th>75m</th>
 		</tr>
 		<tr>
-			<th>1830h</th>
 			<th>1900h</th>
 			<th>1930h</th>
 			<th>2000h</th>
+			<th>2030h</th>
 		</tr>
 	</thead>
 	<tbody>
 	{% for item in items %}
 		<tr>
 			<td class="{{item.tags.Date}}">{{item.Date}}</td>
-			<td class="{{item.tags.band1}}">{{item.band1}}</td>
 			<td class="{{item.tags.band2}}">{{item.band2}}</td>
 			<td class="{{item.tags.band3}}">{{item.band3}}</td>
 			<td class="{{item.tags.band4}}">{{item.band4}}</td>
+			<td class="{{item.tags.band1}}">{{item.band1}}</td>
 		</tr>
 	{% endfor %}
 	</tbody>

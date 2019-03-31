@@ -2,6 +2,7 @@
 import argparse
 import copy
 import datetime
+import mimetypes
 import os
 import smtplib
 import webbrowser
@@ -17,7 +18,7 @@ EMAIL_CONFIG = "./email.yml"
 
 
 def send_email(server, port, password, sender, to, cc, bcc, subject,
-               html, text):
+               html, text, attachments):
     toaddrs = to + cc + bcc
     print(toaddrs)
     message = MIMEMultipart("alternative")
@@ -27,6 +28,18 @@ def send_email(server, port, password, sender, to, cc, bcc, subject,
     message["Cc"] = ",".join(cc)
     message.attach(MIMEText(text, "plain"))
     message.attach(MIMEText(html, "html"))
+
+    #for file in attachments:
+    #    path = os.path.join('.', file)
+    #    ctype, encoding = mimetypes.guess_type(path)
+    #    if ctype is None or encoding is not None:
+    #        ctype = 'application/octet-stream'
+    #    maintype, subtype = ctype.split('/', 1)
+    #    with open(path, 'rb') as fp:
+    #        message.add_attachment(fp.read(),
+    #                               maintype=maintype,
+    #                               subtype=subtype,
+    #                               filename=file)
 
     with smtplib.SMTP(server, port) as s:
         s.starttls()
@@ -46,15 +59,15 @@ def get_template(file='email.njk'):
         return fp.read()
 
 
-def get_items(api_id, api_key, api_secret):
+def get_sheetsu_items_secure(api_id, api_key, api_secret):
     client = sheetsu.SheetsuClient(api_id, api_key=api_key,
                                    api_secret=api_secret)
     return client.read()
 
 
-def get_nicknames(nickname_api_id):
+def get_sheetsu_items(nickname_api_id):
     client = sheetsu.SheetsuClient(nickname_api_id)
-    return client.read()[0]
+    return client.read()
 
 
 def render_body(sched_items, today, template, warning_threshold, nicknames,
@@ -154,9 +167,16 @@ def render_body(sched_items, today, template, warning_threshold, nicknames,
 
 
 def get_config(config_file):
+    config = {}
+    print("reading {}".format(config_file))
     try:
         with open(config_file, 'r') as ymlfile:
-            return yaml.load(ymlfile)
+            c = yaml.load(ymlfile)
+            config.update(c)
+            if 'SUBS' in c:
+                for sub in c['SUBS']:
+                    config.update(get_config(sub))
+            return config
     except Exception as e:
         print("Error with Config {}: {}".format(config_file, e))
         print("Continuing with an empty config.")
@@ -173,26 +193,27 @@ def main():
     # let's get our subordinate configs, and update the master config
     sub_configs = config.get('SUBS', [])
     for conf in sub_configs:
+        print('Reading config "{}"'.format(conf))
         config.update(get_config(conf))
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--api',
+    parser.add_argument('--sheetsu-schedule-api-id',
                         help='Sheetsu Schedule API ID',
                         type=str,
-                        default=os.environ.get('SHEETSU_API_ID',
-                                               config.get('SHEETSU_API_ID')))
-    parser.add_argument('--nickname-api',
+                        default=os.environ.get('SHEETSU_SCHEDULE_API_ID',
+                                               config.get('SHEETSU_SCHEDULE_API_ID')))
+    parser.add_argument('--sheetsu-nickname-api-id',
                         help='API ID for Sheetsu Nickname Lookup',
                         type=str,
                         default=os.environ.get('SHEETSU_NICKNAME_API_ID',
                                                config.get(
                                                    'SHEETSU_NICKNAME_API_ID')))
-    parser.add_argument('--key',
+    parser.add_argument('--sheetsu-api-key',
                         help='sheetsu API KEY',
                         type=str,
                         default=os.environ.get('SHEETSU_API_KEY',
                                                config.get('SHEETSU_API_KEY')))
-    parser.add_argument('--secret',
+    parser.add_argument('--sheetsu-api-secret',
                         help='sheetsu API SECRET',
                         type=str,
                         default=os.environ.get('SHEETSU_API_SECRET',
@@ -207,7 +228,7 @@ def main():
                         help='ISO Format Date (YYYY-MM-DD) Overide',
                         type=str,
                         default=datetime.date.today().isoformat())
-    parser.add_argument('--netday',
+    parser.add_argument('--net-day',
                         help='Day of the week for the net',
                         type=str,
                         default=os.environ.get('NET_DAY',
@@ -226,11 +247,11 @@ def main():
                                    'default web browser',
                               action='store_true')
 
-    parser.add_argument('--sender',
+    parser.add_argument('--sender', #can't use 'from', as it's a python reserved word
                         help='Email of message sender',
                         type=str,
-                        default=os.environ.get('FROM',
-                                               config.get('FROM')))
+                        default=os.environ.get('SENDER',
+                                               config.get('SENDER')))
     parser.add_argument('--to',
                         help='Reciver of the email',
                         action='append',
@@ -249,22 +270,29 @@ def main():
                         type=str,
                         default=os.environ.get('BCC',
                                                config.get('BCC', [])))
+    parser.add_argument('--attachment',
+                        help='relative filename of an attachment to '
+                             'include with the email',
+                        action='append',
+                        type=str,
+                        default=os.environ.get('ATTACHMENT',
+                                               config.get('ATTACHMENT', [])))
     parser.add_argument('--subject',
                         help='Subject odf the email',
                         type=str,
                         default=os.environ.get('SUBJECT',
                                                config.get('SUBJECT')))
-    parser.add_argument('--password',
+    parser.add_argument('--email-password',
                         help='SMTP Server Sender Password',
                         type=str,
                         default=os.environ.get('EMAIL_PASSWORD',
                                                config.get('EMAIL_PASSWORD')))
-    parser.add_argument('--server',
+    parser.add_argument('--email-server',
                         help='SMTP Server (with tls)',
                         type=str,
                         default=os.environ.get('EMAIL_SERVER',
                                                config.get('EMAIL_SERVER')))
-    parser.add_argument('--port',
+    parser.add_argument('--email-port',
                         help='SMTP Server tls Port',
                         type=int,
                         default=os.environ.get('EMAIL_PORT',
@@ -284,24 +312,24 @@ def main():
                                                config.get('WARNING_THRESHOLD')))
     parser.add_argument('--message',
                         help='an alternate message string to send',
-                        type=str)
+                        type=str,
+                        default=os.environ.get('MESSAGE',
+                                               config.get('MESSAGE')))
     args = parser.parse_args()
 
-    template = get_template(file=args.template)
-    sched_items = get_items(args.api, args.key, args.secret)
-    nicknames = get_nicknames(args.nickname_api)
+    x = False
+    for k, v in vars(args).items():
+        if v is None:
+            x = True
+            print('ERROR: "{}" MUST BE DEFINED'.format(str.upper(k)))
+    if x:
+        exit(1)
 
-    if args.message:
-        html = """\
-        <html>
-          <body>
-            <p>
-                {}
-            </p>
-          </body>
-        </html>""".format(args.message)
-        text = args.message
-    else:
+    template = get_template(file=args.template)
+    sched_items = get_sheetsu_items_secure(args.sheetsu_schedule_api_id, args.sheetsu_api_key, args.sheetsu_api_secret)
+    nicknames = get_sheetsu_items(args.sheetsu_nickname_api_id)[0]
+
+    if not args.message:
         html, when, upcoming = render_body(sched_items=sched_items,
                                            today=args.date,
                                            template=template,
@@ -312,6 +340,17 @@ def main():
         if not args.subject:
             args.subject = "KCARC Net: {}, {}".format(when, upcoming)
         text = 'text item to be filled'
+    else:
+        html = """\
+            <html>
+              <body>
+                <p>
+                  {}
+                </p>
+              </body>
+            </html>""".format(args.message)
+    text = args.message
+
 
     if args.print:
         print(html)
@@ -320,16 +359,17 @@ def main():
                   filename=args.filename)
         webbrowser.open('file://' + os.path.realpath(args.filename))
     else:
-        send_email(server=args.server,
-                   port=args.port,
-                   password=args.password,
+        send_email(server=args.email_server,
+                   port=args.email_port,
+                   password=args.email_password,
                    sender=args.sender,
                    to=args.to,
                    cc=args.cc,
                    bcc=args.bcc,
                    subject=args.subject,
                    html=html,
-                   text=text)
+                   text=text,
+                   attachments=args.attachment)
 
 
 if __name__ == "__main__":

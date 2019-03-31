@@ -39,4 +39,7 @@ will implement standard methods for new uses.
 
 - breed an install with CFN for lambda-based deploy and CWE scheduled runs
 
-- 
+- if there are issues or warnings, there should be an email automatically sent.
+ This means the config needs to have the notification/report email address
+ 
+-   

@@ -1,12 +1,10 @@
 SENDER: 'choffma@gmail.com'
+
 TO:
-  - 'choffma@gmail.com'
+  - 'kcarc@groups.io'
 CC:
-  - 'de.kg6o@gmail.cm'
+  - 'steveburton@wavecable.com'
 BCC:
   - 'coeotic@gmail.com'
 SUBJECT: '' # let logic create subject
 MESSAGE: '' # render jinja
-ATTACHMENT:
-  - 'test1.txt'
-
