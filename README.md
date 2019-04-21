@@ -1,5 +1,5 @@
 # NetControlSched (NCS)
-#### v0.1b
+#### v0.2b
 ##### *by: kg6o*
 
 ------------------------
@@ -16,17 +16,39 @@ It's free, so sheetsu is incorporated as a data source.
     
 ### Use
 
-    `python email.py`
+    `python create_email.py`
      
 Note that the command line arguments (see 'help', below)
 takes precedence over environment variables,  which takes precedence 
 over .yml configs. 
+
+You will have to ensure that the following are declared, either in a new 
+credentials.yaml, or via command arguments:
+
+    SHEETSU_API_KEY
+    SHEETSU_API_SECRET
+    SHEETSU_SCHEDULE_API_ID
+    SHEETSU_NICKNAME_API_ID
+    EMAIL_PASSWORD
     
+### Configuration
+
+.yaml configs are your friend! They define default runtime values to help with 
+CLI-based usage. 
+
+The root config is hard-coded, so you can vary test/prod profiles by varying the
+root .yaml config file name in the `email.yml` file.
+ 
 ### Help
 
     `python email.py --help`
     
 ### TODO
+
+- Prod/Dev configs should be file-content configured AND/OR argument-configured.
+
+- I don't like that I have to edit the email.njk to add temporary messages. These 
+should be added via command arguments in a special jina template section.
 
 - make this a class, to fully modularise the *_render methods,` so that new scripts
 will implement standard methods for new uses.
@@ -39,4 +61,7 @@ will implement standard methods for new uses.
 
 - breed an install with CFN for lambda-based deploy and CWE scheduled runs
 
-- 
+- if there are issues or warnings, there should be an email automatically sent.
+ This means the config needs to have the notification/report email address
+ 
+-   
