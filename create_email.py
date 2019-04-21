@@ -2,19 +2,59 @@
 import argparse
 import copy
 import datetime
-import mimetypes
 import os
+import os.path
+import pickle
 import smtplib
 import webbrowser
 import yaml
 
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.mime.application import MIMEApplication
+from os.path import basename
 
-import sheetsu
+from googleapiclient.discovery import build
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
 from jinja2 import Template
+import sheetsu
 
 EMAIL_CONFIG = "./email.yml"
+SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly']
+
+
+def get_net_script(net_script_id):
+    # from https://developers.google.com/drive/api/v3/quickstart/python
+    creds = None
+    if os.path.exists('token.pickle'):
+        with open('token.pickle', 'rb') as token:
+            creds = pickle.load(token)
+
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                'credentials.json', SCOPES)
+            creds = flow.run_local_server()
+        # Save the credentials for the next run
+        with open('token.pickle', 'wb') as token:
+            pickle.dump(creds, token)
+
+    service = build('drive', 'v3', credentials=creds)
+
+    # Call the Drive v3 API
+    results = service.files().list(
+        pageSize=10, fields="nextPageToken, files(id, name)").execute()
+    items = results.get('files', [])
+
+    if not items:
+        print('No files found.')
+    else:
+        print('Files:')
+        for item in items:
+            print(u'{0} ({1})'.format(item['name'], item['id']))
 
 
 def send_email(server, port, password, sender, to, cc, bcc, subject,
@@ -29,17 +69,17 @@ def send_email(server, port, password, sender, to, cc, bcc, subject,
     message.attach(MIMEText(text, "plain"))
     message.attach(MIMEText(html, "html"))
 
-    #for file in attachments:
-    #    path = os.path.join('.', file)
-    #    ctype, encoding = mimetypes.guess_type(path)
-    #    if ctype is None or encoding is not None:
-    #        ctype = 'application/octet-stream'
-    #    maintype, subtype = ctype.split('/', 1)
-    #    with open(path, 'rb') as fp:
-    #        message.add_attachment(fp.read(),
-    #                               maintype=maintype,
-    #                               subtype=subtype,
-    #                               filename=file)
+    for file in attachments:
+        print('Attaching: {}'.format(file))
+        path = os.path.join('.', file)
+        with open(path, "rb") as fil:
+            part = MIMEApplication(
+                fil.read(),
+                Name=basename(path)
+            )
+        # After the file is closed
+        part['Content-Disposition'] = 'attachment; filename="%s"' % basename(path)
+        message.attach(part)
 
     with smtplib.SMTP(server, port) as s:
         s.starttls()
@@ -47,6 +87,7 @@ def send_email(server, port, password, sender, to, cc, bcc, subject,
         s.sendmail(
             sender, toaddrs, message.as_string()
         )
+        s.close()
 
 
 def save_html(html, filename):
@@ -350,7 +391,6 @@ def main():
               </body>
             </html>""".format(args.message)
     text = args.message
-
 
     if args.print:
         print(html)

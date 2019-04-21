@@ -8,5 +8,5 @@ BCC:
 SUBJECT: '' # let logic create subject
 MESSAGE: '' # render jinja
 ATTACHMENT:
-  - 'test1.txt'
+  - 'KC7ZNetControlScript_v0_2b.pdf'
 

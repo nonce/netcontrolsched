@@ -8,3 +8,5 @@ BCC:
   - 'coeotic@gmail.com'
 SUBJECT: '' # let logic create subject
 MESSAGE: '' # render jinja
+ATTACHMENT:
+  - 'KC7ZNetControlScript_v0_2b.pdf'
