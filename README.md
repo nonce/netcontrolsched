@@ -31,11 +31,21 @@ credentials.yaml, or via command arguments:
     SHEETSU_NICKNAME_API_ID
     EMAIL_PASSWORD
     
+### Configuration
+
+.yaml configs are your friend! They define default runtime values to help with 
+CLI-based usage. 
+
+The root config is hard-coded, so you can vary test/prod profiles by varying the
+root .yaml config file name in the `email.yml` file.
+ 
 ### Help
 
     `python email.py --help`
     
 ### TODO
+
+- Prod/Dev configs should be file-content configured AND/OR argument-configured.
 
 - I don't like that I have to edit the email.njk to add temporary messages. These 
 should be added via command arguments in a special jina template section.
