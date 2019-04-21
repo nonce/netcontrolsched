@@ -22,8 +22,8 @@ Note that the command line arguments (see 'help', below)
 takes precedence over environment variables,  which takes precedence 
 over .yml configs. 
 
-You will have to ensure that the following are declared, either in a .yaml, or 
-via command arguments:
+You will have to ensure that the following are declared, either in a new 
+credentials.yaml, or via command arguments:
 
     SHEETSU_API_KEY
     SHEETSU_API_SECRET
